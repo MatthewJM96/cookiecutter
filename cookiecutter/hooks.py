@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from jinja2 import FileSystemLoader
 from jinja2.exceptions import UndefinedError
 
 from cookiecutter import utils
@@ -18,6 +19,7 @@ from cookiecutter.exceptions import FailedHookException
 from cookiecutter.utils import (
     create_env_with_context,
     create_tmp_repo_dir,
+    list_template_directories,
     rmtree,
     work_in,
 )
@@ -106,7 +108,7 @@ def run_script(script_path: str, cwd: Path | str = '.') -> None:
 
 
 def run_script_with_context(
-    script_path: Path | str, cwd: Path | str, context: dict[str, Any]
+    script_path: Path | str, cwd: Path | str, context: dict[str, Any], depth: int
 ) -> None:
     """Execute a script after rendering it with Jinja.
 
@@ -120,6 +122,7 @@ def run_script_with_context(
 
     with tempfile.NamedTemporaryFile(delete=False, mode='wb', suffix=extension) as temp:
         env = create_env_with_context(context)
+        env.loader = FileSystemLoader(list_template_directories(depth))
         template = env.from_string(contents)
         output = template.render(**context)
         temp.write(output.encode('utf-8'))
@@ -127,13 +130,19 @@ def run_script_with_context(
     run_script(temp.name, cwd)
 
 
-def run_hook(hook_name: str, project_dir: Path | str, context: dict[str, Any]) -> None:
+def run_hook(
+    hook_name: str,
+    project_dir: Path | str,
+    context: dict[str, Any],
+    depth: int,
+) -> None:
     """
     Try to find and execute a hook from the specified project directory.
 
     :param hook_name: The hook to execute.
     :param project_dir: The directory to execute the script from.
     :param context: Cookiecutter project context.
+    :param depth: Depth of repo_dir from top-level of cookiecutter repo.
     """
     scripts = find_hook(hook_name)
     if not scripts:
@@ -141,7 +150,7 @@ def run_hook(hook_name: str, project_dir: Path | str, context: dict[str, Any]) -
         return
     logger.debug('Running hook %s', hook_name)
     for script in scripts:
-        run_script_with_context(script, project_dir, context)
+        run_script_with_context(script, project_dir, context, depth)
 
 
 def run_hook_from_repo_dir(
@@ -150,6 +159,7 @@ def run_hook_from_repo_dir(
     project_dir: Path | str,
     context: dict[str, Any],
     delete_project_on_failure: bool,
+    depth: int,
 ) -> None:
     """Run hook from repo directory, clean project directory if hook fails.
 
@@ -159,10 +169,11 @@ def run_hook_from_repo_dir(
     :param context: Cookiecutter project context.
     :param delete_project_on_failure: Delete the project directory on hook
         failure?
+    :param depth: Depth of repo_dir from top-level of cookiecutter repo.
     """
     with work_in(repo_dir):
         try:
-            run_hook(hook_name, project_dir, context)
+            run_hook(hook_name, project_dir, context, depth)
         except (
             FailedHookException,
             UndefinedError,

@@ -115,3 +115,12 @@ def create_env_with_context(context: dict[str, Any]) -> StrictEnvironment:
     envvars = context.get('cookiecutter', {}).get('_jinja2_env_vars', {})
 
     return StrictEnvironment(context=context, keep_trailing_newline=True, **envvars)
+
+
+def list_template_directories(depth: int) -> list[str]:
+    """Create a list of template directories for a given depth of repo dir."""
+    template_directories = ['.']
+    template_directories.extend(
+        ['/'.join(['..'] * (i + 1)) + '/templates' for i in range(depth + 1)]
+    )
+    return template_directories

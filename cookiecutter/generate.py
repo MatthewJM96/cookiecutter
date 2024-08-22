@@ -28,6 +28,7 @@ from cookiecutter.hooks import run_hook_from_repo_dir
 from cookiecutter.prompt import YesNoPrompt
 from cookiecutter.utils import (
     create_env_with_context,
+    list_template_directories,
     make_sure_path_exists,
     rmtree,
     work_in,
@@ -303,6 +304,7 @@ def _run_hook_from_repo_dir(
     project_dir: Path | str,
     context: dict[str, Any],
     delete_project_on_failure: bool,
+    depth: int,
 ) -> None:
     """Run hook from repo directory, clean project directory if hook fails.
 
@@ -320,7 +322,7 @@ def _run_hook_from_repo_dir(
         2,
     )
     run_hook_from_repo_dir(
-        repo_dir, hook_name, project_dir, context, delete_project_on_failure
+        repo_dir, hook_name, project_dir, context, delete_project_on_failure, depth
     )
 
 
@@ -381,17 +383,18 @@ def generate_files(
 
     if accept_hooks:
         run_hook_from_repo_dir(
-            repo_dir, 'pre_gen_project', project_dir, context, delete_project_on_failure
+            repo_dir,
+            'pre_gen_project',
+            project_dir,
+            context,
+            delete_project_on_failure,
+            depth,
         )
 
     with work_in(template_dir):
         # Consider all templates directories recursively up to the top-level
         # cookiecutter template.
-        template_directories = ['.']
-        template_directories.extend(
-            ['/'.join(['..'] * (i + 1)) + '/templates' for i in range(depth + 1)]
-        )
-        env.loader = FileSystemLoader(template_directories)
+        env.loader = FileSystemLoader(list_template_directories(depth))
 
         for root, dirs, files in os.walk('.'):
             # We must separate the two types of dirs into different lists.
@@ -469,6 +472,7 @@ def generate_files(
             project_dir,
             context,
             delete_project_on_failure,
+            depth,
         )
 
     return project_dir
