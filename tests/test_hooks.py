@@ -203,6 +203,7 @@ class TestExternalHooks:
             os.path.join(self.hooks_path, self.post_hook),
             'tests',
             {'cookiecutter': {'file': 'context_post.txt'}},
+            0,
         )
         assert os.path.isfile('tests/context_post.txt')
         assert 'tests' not in os.getcwd()
@@ -212,11 +213,11 @@ class TestExternalHooks:
         directory."""
         tests_dir = os.path.join(self.repo_path, 'input{{hooks}}')
         with utils.work_in(self.repo_path):
-            hooks.run_hook('pre_gen_project', tests_dir, {})
+            hooks.run_hook('pre_gen_project', tests_dir, {}, 0)
             assert os.path.isfile(os.path.join(tests_dir, 'python_pre.txt'))
             assert os.path.isfile(os.path.join(tests_dir, 'shell_pre.txt'))
 
-            hooks.run_hook('post_gen_project', tests_dir, {})
+            hooks.run_hook('post_gen_project', tests_dir, {}, 0)
             assert os.path.isfile(os.path.join(tests_dir, 'shell_post.txt'))
 
     def test_run_failing_hook(self) -> None:
@@ -230,7 +231,7 @@ class TestExternalHooks:
 
         with utils.work_in(self.repo_path):
             with pytest.raises(exceptions.FailedHookException) as excinfo:
-                hooks.run_hook('pre_gen_project', tests_dir, {})
+                hooks.run_hook('pre_gen_project', tests_dir, {}, 0)
             assert 'Hook script failed' in str(excinfo.value)
 
 

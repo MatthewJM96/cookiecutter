@@ -244,4 +244,5 @@ def test_deprecate_run_hook_from_repo_dir(tmp_path) -> None:
             project_dir=project_dir,
             context={},
             delete_project_on_failure=False,
+            depth=0
         )
